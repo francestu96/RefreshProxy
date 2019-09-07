@@ -1,0 +1,35 @@
+#! /usr/bin/python3
+import json, sys, os, subprocess
+from importlib.machinery import SourceFileLoader
+
+proxyChanger = SourceFileLoader("changeProxy", "/usr/bin/changeProxy").load_module()
+subprocess.Popen(["service", "tor", "start"])
+print("Refresh Proxy: start\n")
+
+cmd = "proxybroker find --types HTTPS --strict --format json --countries IT CH ES FR DE NL -l 30"
+proxyCheckCmd = 'proxychains curl --write-out "%{http_code}" --silent --output /dev/null "https://www.icanhazip.com/" | tail -n +2'
+proxychainsConfigFile = "/etc/proxychains.config"
+
+proxyList = subprocess.check_output(cmd, shell=True, universal_newlines=True)
+print("Proxy list retrived")
+jsonProxyList = sorted(json.loads(proxyList), key = lambda x: x["avg_resp_time"])
+fastest = True
+
+print("Checking for valid proxy...")
+for proxy in jsonProxyList:
+	if fastest:
+		proxyChanger.changeProxy(proxy["host"] + ":" + str(proxy["port"]))
+
+	proxyResponseCode = int(subprocess.check_output(proxyCheckCmd, shell=True, universal_newlines=True))
+	
+	if proxyResponseCode == 200:	
+		if fastest:
+			print ("Set proxy: " + proxy["host"] + ":" + str(proxy["port"]) + "(" + proxy["geo"]["country"]["code"]+ ")" + " - " + str(proxy["avg_resp_time"]) + "s\n")
+			subprocess.Popen("proxychains firefox https://www.dnsbl.info/dnsbl-database-check.php?IP=" + proxy["host"], shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)			
+			fastest = False
+		else:
+			print ("Other working proxy " + "(" + proxy["geo"]["country"]["code"] + " - " + str(proxy["avg_resp_time"]) + "s)\n" + proxy["host"] + ":" + str(proxy["port"]))
+	
+print("\nRefresh Proxy: end")
+read()
+

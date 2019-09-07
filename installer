@@ -1,0 +1,24 @@
+#! /usr/bin/python3
+
+import subprocess
+
+subprocess.check_call(["apt-get", "install", "tor"])
+subprocess.check_call(["apt-get", "install", "proxychains"])
+subprocess.check_call(["pip", "install", "proxybroker"])
+
+subprocess.check_call(["mv", "./changeProxy", "/usr/bin/changeProxy"])
+subprocess.check_call(["chmod", "775", "/usr/bin/changeProxy"])
+subprocess.check_call(["mv", "./refreshProxy", "/usr/bin/refreshProxy"])
+subprocess.check_call(["chmod", "775", "/usr/bin/refreshProxy"])
+
+w = open("~/.config/autostart/refreshProxy.desktop",'w+')
+
+content = """[Desktop Entry]
+		Name=proxychains_fresh_IP
+		Exec=python3 /usr/bin/refreshProxy
+		Terminal=true
+		Type=Application
+		X-GNOME-Autostart-enabled=true"""
+
+w.writelines(content)
+w.close()
